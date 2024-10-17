@@ -18,23 +18,34 @@ def get_sentences(text):
 
 def get_url(sentence):
     base_url = 'https://www.google.com/search?q='
-    query = sentence
-    query = query.replace(' ', '+')
+    query = sentence.replace(' ', '+')
     url = base_url + query
-    headers={'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36'}
-    res = requests.get(url, headers=headers)
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36'
+    }
+    
+    try:
+        res = requests.get(url, headers=headers, timeout=10)  # Adding a timeout
+        res.raise_for_status()  # Raise an error for bad responses
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching the URL: {e}")  # Log the error
+        return None
+
     soup = BeautifulSoup(res.text, 'html.parser')
-    divs = soup.find_all('div', class_='yuRUbf')
+
+    # Find the search result links
+    divs = soup.find_all('div', class_='g')  # Updated class to a more generic one
     urls = []
     for div in divs:
         a = div.find('a')
-        urls.append(a['href'])
-    if len(urls) == 0:
-        return None
-    elif "youtube" in urls[0]:
-        return None
-    else:
-        return urls[0]
+        if a and 'href' in a.attrs:
+            href = a['href']
+            if "youtube" not in href:  # Exclude YouTube links
+                urls.append(href)
+
+    # Return the first valid URL, or None if none found
+    return urls[0] if urls else None
+
 
 # def read_text_file(file):
 #     content = ""
